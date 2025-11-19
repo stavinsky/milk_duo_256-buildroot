@@ -35,13 +35,16 @@ clean:
 	-$(MAKE) -C opensbi/ clean
 
 u-boot-%:
-	$(MAKE) -C u-boot $*
+	$(MAKE) -C u-boot/ $*
+
+kernel-%:
+	$(MAKE) -C kernel/ $*
+
+buildroot-%:
+	$(MAKE) -C buildroot/ $*
 
 u-boot-menuconfig:
 	$(MAKE) -C u-boot menuconfig
-# 	$(MAKE) configs/u-boot_defconfig
-
-# configs/u-boot_defconfig: u-boot/.config
 	$(MAKE) -C u-boot/ savedefconfig
 	cp u-boot/defconfig configs/u-boot_defconfig
 
@@ -62,3 +65,9 @@ out/fip.bin: fiptool out/fw_dynamic.bin out/u-boot.bin
 
 out/boot.scr: configs/u-boot.cmd
 	mkimage -A arm -T script -C none -n "ITB Boot Script" -d configs/u-boot.cmd out/boot.scr
+
+out/1.dtb: 
+	cp configs/duo256.dts kernel/arch/riscv/boot/dts/sophgo/
+	$(MAKE) -C kernel dtbs 
+	cp kernel/arch/riscv/boot/dts/sophgo/duo256.dtb out/1.dtb 
+
