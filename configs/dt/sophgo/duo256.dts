@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0 OR MIT)
 /*
- * Copyright (C) 2024 Thomas Bonnefille <thomas.bonnefille@bootlin.com>
- */
+* Copyright (C) 2024 Thomas Bonnefille <thomas.bonnefille@bootlin.com>
+*/
 
 /dts-v1/;
 
@@ -10,7 +10,7 @@
 / {
 	model = "LicheeRV Nano B";
 	compatible = "sipeed,licheerv-nano-b", "sipeed,licheerv-nano", "sophgo,sg2002";
-
+	
 	aliases {
 		gpio0 = &gpio0;
 		gpio1 = &gpio1;
@@ -22,7 +22,7 @@
 		serial3 = &uart3;
 		serial4 = &uart4;
 	};
-
+	
 	chosen {
 		stdout-path = "serial0:115200n8";
 	};
@@ -36,13 +36,13 @@
 	uart0_cfg: uart0-cfg {
 		uart0-pins {
 			pinmux = <PINMUX(PIN_UART0_TX, 0)>,
-				 <PINMUX(PIN_UART0_RX, 0)>;
+			<PINMUX(PIN_UART0_RX, 0)>;
 			bias-pull-up;
 			drive-strength-microamp = <10800>;
 			power-source = <3300>;
 		};
 	};
-
+	
 	sdhci0_cfg: sdhci0-cfg {
 		sdhci0-clk-pins {
 			pinmux = <PINMUX(PIN_SD0_CLK, 0)>;
@@ -50,24 +50,24 @@
 			drive-strength-microamp = <16100>;
 			power-source = <3300>;
 		};
-
+		
 		sdhci0-cmd-pins {
 			pinmux = <PINMUX(PIN_SD0_CMD, 0)>;
 			bias-pull-up;
 			drive-strength-microamp = <10800>;
 			power-source = <3300>;
 		};
-
+		
 		sdhci0-data-pins {
 			pinmux = <PINMUX(PIN_SD0_D0, 0)>,
-				 <PINMUX(PIN_SD0_D1, 0)>,
-				 <PINMUX(PIN_SD0_D2, 0)>,
-				 <PINMUX(PIN_SD0_D3, 0)>;
+			<PINMUX(PIN_SD0_D1, 0)>,
+			<PINMUX(PIN_SD0_D2, 0)>,
+			<PINMUX(PIN_SD0_D3, 0)>;
 			bias-pull-up;
 			drive-strength-microamp = <10800>;
 			power-source = <3300>;
 		};
-
+		
 		sdhci0-cd-pins {
 			pinmux = <PINMUX(PIN_SD0_CD, 0)>;
 			bias-pull-up;
@@ -95,6 +95,6 @@
 };
 
 &usb {
-	dr_mode = "host";
-	status = "okay"
+	dr_mode = "peripheral";
+	status = "okay";
 };
