@@ -1,0 +1,6 @@
+make milkv_duo_defconfig  CROSS_COMPILE=/home/dev/dev/fpga/projects/milk_duo_buildroot/my/buildroot/output/host/bin/riscv64-buildroot-linux-gnu-
+
+
+export CROSS_COMPILE=/home/dev/dev/fpga/projects/milk_duo_buildroot/my/buildroot/output/host/bin/riscv64-buildroot-linux-gnu-
+
+./fiptool     --fsbl data/fsbl/cv181x.bin     --ddr_param data/ddr_param.bin     --opensbi ../opensbi/build/platform/generic/firmware/fw_dynamic.bin     --uboot ../u-boot/u-boot.bin     --rtos data/cvirtos.bin
