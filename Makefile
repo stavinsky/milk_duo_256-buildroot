@@ -1,7 +1,3 @@
-CROSS_COMPILE = $SCRIPT_DIR/buildroot/output/host/bin/riscv64-buildroot-linux-gnu- 
-ARCH  = riscv
-export CROSS_COMPILE 
-export ARCH
 .PHONY: clean u-boot-%
 
 UBOOT_FILES := out/u-boot.bin out/u-boot.dtb

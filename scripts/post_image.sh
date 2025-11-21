@@ -2,7 +2,7 @@
 set -e
 TARGET_DIR="$1"
 
-cd $TOPDIR
+cd $TARGET_DIR
 mkdir -p tmp
 cd tmp
 if [ ! -d "./fiptool" ]; then

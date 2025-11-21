@@ -12,6 +12,8 @@ booti ${kernel_addr_r} - ${fdt_addr_r}
 
 
 
+fatload mmc 0:1 0x80200000 Image
+
 
 
 setenv bootcmd 'mmc dev 0; fatload mmc 0:1 0x80100000 boot.scr; source 0x80100000'
