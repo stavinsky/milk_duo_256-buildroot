@@ -1,0 +1,7 @@
+config BR2_PACKAGE_DUO_PINMUX
+    bool "duo-pinmux"
+    help
+      pin multilexor for milk-duo series
+      
+      https://github.com/milkv-duo/duo-pinmux
+

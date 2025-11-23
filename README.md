@@ -11,10 +11,10 @@ What you can expect:
  - usb peripheral works. Tested with ethernet card emulation
  - middleware are not compiled yet
  - don't know how to dial with rtos
- - GPIO was not tested 
+ - GPIO 0-4 works fine. But we need to setup pinmux by duo-pinmux tool. Added by custom buildroot package
  - rootfs has minimal packages. if you need any package install from `make menuconfig` from buildroot folder
 
-comments and PR's are wery welcome
+comments issues and PR's are wery welcome!
 
 ### structure
  - configs - all the configs
@@ -23,6 +23,7 @@ comments and PR's are wery welcome
  - Makefile - very simple self documenting Makefile
  - notes.md - some draft notes and commands for copy and paste. can be ignored
  - dl - to avoid repeating downloads, this folder moved up from buildroot. this is for downloads for buildroot
+ - configs/u-boot_defconfig - milkv_duo_defconfig from u-boot wih minor changes. 
 
 ### requirements 
  - https://buildroot.org/downloads/manual/manual.html#requirement

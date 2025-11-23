@@ -1,0 +1,2 @@
+source "$BR2_EXTERNAL_br_ext_PATH/package/duo-pinmux/Config.in"
+

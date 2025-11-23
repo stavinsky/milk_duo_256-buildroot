@@ -1,0 +1,16 @@
+diff --git a/duo256m/Makefile b/duo256m/Makefile
+index 8a4d64c..67b051c 100644
+--- a/duo256m/Makefile
++++ b/duo256m/Makefile
+@@ -1,9 +1,9 @@
+-CC = riscv64-unknown-linux-musl-gcc
++CC = $(CROSS_COMPILE)gcc
+ 
+ source  = duo_pinmux.c devmem.c
+ object  = $(source:%.cc=%.o)
+ 
+-CFLAGS += -mcpu=c906fdv -march=rv64imafdcv0p7xthead -mcmodel=medany -mabi=lp64d -static
++CFLAGS += -march=rv64gc -mabi=lp64d -mcmodel=medany -static
+ 
+ all: $(object)
+ 	$(CC) $(CFLAGS) $(object) -o duo-pinmux
