@@ -110,6 +110,13 @@
 &usb {
 	dr_mode = "peripheral";
 	status = "okay";
+	vbus-gpio = <&portb 6 0>;
+	g-use-dma = <0>;
+	g-use-dma-descriptor = <0>;
+};
+&usbphy {
+	// g-use-dma;
+	vbus-gpio = <&portb 6 0>;
 };
 &spi2 {
 	status = "okay";
@@ -121,4 +128,5 @@
 		reg = <0>;
 		spi-max-frequency = <10000000>;
 	};
+	
 };
