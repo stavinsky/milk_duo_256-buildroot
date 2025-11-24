@@ -6,10 +6,10 @@ clean:
 	rm -rf out/fip.bin
 
 buildroot: 
-	git clone --depth 1 https://github.com/buildroot/buildroot.git
+	git clone --depth 1 --branch master https://github.com/buildroot/buildroot.git
 toolchain: buildroot
 	mkdir -p $(BR2_DL_DIR) 
-	$(MAKE) -C buildroot/ BR2_DEFCONFIG=../configs/buildroot-config defconfig 
+	$(MAKE) -C buildroot/ BR2_DEFCONFIG=../configs/buildroot-config BR2_EXTERNAL=../br-external defconfig
 	$(MAKE) -C buildroot/ toolchain 
 
 all: toolchain

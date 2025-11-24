@@ -59,3 +59,11 @@ echo $UDC > $G/UDC
 # Assign IP
 ifconfig usb0 10.0.0.1 up
 ```
+
+
+###spi
+
+modprobe -v spi-dw
+modprobe -v spi-dw-mmio
+duo-pinmux -r GP6 -r GP7 -r GP8 -r GP9
+modprobe -v spidev
