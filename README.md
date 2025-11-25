@@ -9,6 +9,8 @@ What you can expect:
  - mainline u-boot (also rc, on 2025.10 fatload fails everytime)
  - it builds, boots. 
  - usb peripheral works. Tested with ethernet card emulation
+   - network card starts with ip 10.42.0.1
+   - ssh milkv@10.42.0.1 pass: `1`. You can change password in configs/users.txt(keep `=` prefix) 
  - middleware are not compiled yet
  - don't know how to dial with rtos
  - GPIO 0-4 works fine. But we need to setup pinmux by duo-pinmux tool. Added by custom buildroot package
