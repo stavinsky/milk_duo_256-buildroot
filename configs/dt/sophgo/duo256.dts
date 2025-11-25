@@ -111,13 +111,10 @@
 	dr_mode = "peripheral";
 	status = "okay";
 	vbus-gpio = <&portb 6 0>;
-	g-use-dma = <0>;
-	g-use-dma-descriptor = <0>;
+	g-rx-fifo-size = <1536>;
+	g-tx-fifo-size = <128 128 64 64 64 64 32 32>;
 };
-&usbphy {
-	// g-use-dma;
-	vbus-gpio = <&portb 6 0>;
-};
+
 &spi2 {
 	status = "okay";
 	pinctrl-0 = <&spi2_cfg>;
