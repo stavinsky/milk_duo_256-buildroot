@@ -88,6 +88,7 @@
 		};
 	};
 	
+	
 };
 
 &sdhci0 {
@@ -126,4 +127,92 @@
 		spi-max-frequency = <10000000>;
 	};
 	
+};
+
+&dmac {
+	status = "okay";
+};
+&dmamux {
+	status = "okay";
+};
+&pinctrl {
+	i2s2_cfg: i2s2_cfg{
+		i2s2-out {
+			pinmux = <PINMUX(PIN_ETH_TXM, 7)>,
+			<PINMUX(PIN_ETH_RXP,  7)>,
+			<PINMUX(PIN_ETH_RXM,  7)>;
+			
+			bias-disable;
+			drive-strength-microamp = <15700>;
+			power-source = <1800>;
+		};
+		i2s2-in {
+			pinmux = <PINMUX(PIN_ETH_TXP, 7)>;
+			
+			// bias-disable;
+			// drive-strength-microamp = <10800>;
+			power-source = <1800>;
+		};
+	};
+};
+/*
+in the base file
+
+*/
+/ {
+	i2s2: i2s@4120000 {
+		compatible = "cvitek,cv1835-i2s";
+		reg = <0x04120000 0x10000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+	soc {
+		aiao: audio-syscon@4108000 {
+			compatible = "sophgo,sg2002-aiao", "syscon";
+			reg = <0x04108000 0x1000>;
+		};
+	};
+};
+&i2s2 {
+	pinctrl-0 = <&i2s2_cfg>;
+	pinctrl-names = "default";
+	#sound-dai-cells = <0>;
+	dmas = <&dmamux 5 1>;
+	dma-names = "tx";
+	capability = "tx";
+	mclk_out = "false";// todo: ignored for the moment
+	clocks = <&clk CLK_APB_I2S2>,  <&clk CLK_SDMA_AUD2>;
+	clock-names = "i2s", "mclk";
+	status = "okay";
+	aiao = <&aiao>;
+	aiao,tdm-id = <2>;
+	assigned-clocks = <&clk CLK_SDMA_AUD2>;
+	assigned-clock-rates = <49152000>;   /* 12.288 MHz requested */
+	
+	#sound-dai-cells = <0>;
+};
+/ {
+	codec0: dummy-codec {
+		compatible = "sg2002,dummy-codec";
+		#sound-dai-cells = <0>;
+	};
+	sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "sg2002-i2s";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,bitclock-master = <&sound_cpu>;
+		simple-audio-card,frame-master = <&sound_cpu>;
+		
+		
+		sound_cpu: simple-audio-card,cpu {
+			sound-dai = <&i2s2>;
+		};
+		
+		simple-audio-card,codec {
+			sound-dai = <&codec0>;// real codec node, or whatever you have
+		};
+		
+		
+	};
 };
