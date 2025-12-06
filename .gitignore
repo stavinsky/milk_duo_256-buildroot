@@ -5,3 +5,6 @@
 /u-boot/
 /dl/
 /*.bak/
+.vscode
+/i2s_driver/*.cmd
+/backup/
