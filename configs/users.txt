@@ -1,1 +1,1 @@
-milkv -2 sudo -2 =1 /home/anton /bin/sh wheel milkv user
+milkv -2 sudo -2 =1 /home/milkv /bin/sh wheel milkv user

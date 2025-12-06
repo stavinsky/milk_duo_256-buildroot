@@ -1,0 +1,25 @@
+From b2a5c89b2913511a68aa95628975375b0369b285 Mon Sep 17 00:00:00 2001
+From: "Anton D. Stavinskii" <stavinsky@gmail.com>
+Date: Sat, 6 Dec 2025 12:53:22 +0400
+Subject: [PATCH] temp fix dmamux.c
+
+---
+ drivers/dma/cv1800b-dmamux.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/dma/cv1800b-dmamux.c b/drivers/dma/cv1800b-dmamux.c
+index e900d6595617..825e1614051d 100644
+--- a/drivers/dma/cv1800b-dmamux.c
++++ b/drivers/dma/cv1800b-dmamux.c
+@@ -214,7 +214,7 @@ static int cv1800_dmamux_probe(struct platform_device *pdev)
+ 		}
+ 
+ 		init_llist_node(&tmp->node);
+-		tmp->channel = i;
++		tmp->channel = MAX_DMA_CH_ID - i;
+ 		llist_add(&tmp->node, &data->free_maps);
+ 	}
+ 
+-- 
+2.43.0
+
