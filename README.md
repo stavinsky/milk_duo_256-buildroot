@@ -16,7 +16,7 @@ What you can expect:
  - GPIO 0-4 works fine. But we need to setup pinmux by duo-pinmux tool. Added by custom buildroot package
  - rootfs has minimal packages. if you need any package install from `make menuconfig` from buildroot folder
 
-comments issues and PR's are wery welcome!
+comments issues and PR's are very welcome!
 
 ### structure
  - configs - all the configs
