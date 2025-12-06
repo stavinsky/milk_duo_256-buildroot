@@ -178,17 +178,17 @@ in the base file
 	pinctrl-0 = <&i2s2_cfg>;
 	pinctrl-names = "default";
 	#sound-dai-cells = <0>;
-	dmas = <&dmamux 5 1>;
-	dma-names = "tx";
-	capability = "tx";
-	mclk_out = "false";// todo: ignored for the moment
+	dmas = <&dmamux 4 1>,
+	<&dmamux 5 1>;
+	dma-names = "rx", "tx";
+	capability = "txrx";
 	clocks = <&clk CLK_APB_I2S2>,  <&clk CLK_SDMA_AUD2>;
 	clock-names = "i2s", "mclk";
 	status = "okay";
 	aiao = <&aiao>;
 	aiao,tdm-id = <2>;
 	assigned-clocks = <&clk CLK_SDMA_AUD2>;
-	assigned-clock-rates = <49152000>;   /* 12.288 MHz requested */
+	assigned-clock-rates = <49152000>; // todo make it configurable by hw formats 
 	
 	#sound-dai-cells = <0>;
 };
