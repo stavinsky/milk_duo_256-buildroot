@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/buildroot/output/build/linux-6.18/arch/riscv/include/",
+                "${workspaceFolder}/buildroot/output/build/linux-6.18/arch/riscv/include/generated/",
+                "${workspaceFolder}/buildroot/output/build/linux-6.18/include/",
+                "${workspaceFolder}/i2s_driver"
+            ],
+            "defines": [
+                "__KERNEL__",
+                "MODULE"
+            ],
+            "compilerPath": "${workspaceFolder}/buildroot/output/host/bin/riscv64-buildroot-linux-gnu-gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/i2s_driver/"
+                ]
+            }
+        }
+    ],
+    "version": 4
+}
