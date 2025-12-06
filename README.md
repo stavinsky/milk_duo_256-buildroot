@@ -5,8 +5,8 @@ The main goal is to make bare minimal bootable image with minimal customization 
 
 
 What you can expect: 
- - mainline kernel (unfortunately release candidate) with patches from sophgo 
- - mainline u-boot (also rc, on 2025.10 fatload fails everytime)
+ - mainline kernel (6.18) with patches from sophgo 
+ - mainline u-boot (rc, on 2025.10 fatload fails everytime)
  - it builds, boots. 
  - usb peripheral works. Tested with ethernet card emulation
    - network card starts with ip 10.42.0.1
