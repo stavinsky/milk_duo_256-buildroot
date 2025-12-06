@@ -7,4 +7,11 @@
 /*.bak/
 .vscode
 /i2s_driver/*.cmd
+/i2s_driver/.*
+/i2s_driver/*.ko
+/i2s_driver/*.o
+/i2s_driver/*.mod
+/i2s_driver/*.symvers
+/i2s_driver/*.order
+/i2s_driver/*.mod.*
 /backup/

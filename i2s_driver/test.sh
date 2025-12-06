@@ -2,6 +2,7 @@ modprobe snd-soc-simple-card
 insmod /home/milkv/codec.ko
 insmod /home/milkv/i2s_driver.ko
 # aplay -D hw:0,0 -f S24_LE -c 2 -r 48000 /dev/random
+# arecord -D hw:0,0 -f S24_LE -c 2 -r 48000 > /dev/null 
 # 0x04330000 - dma 
 # 0x03000000 - system control 
 # 0x03002000 - clock control

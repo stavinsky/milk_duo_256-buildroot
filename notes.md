@@ -170,3 +170,8 @@ devmem 0x03000158 32
 
 
 devmem 0x04120028 32 0x01070007 # somthing with threshold did the job and dma is not failing anymore
+
+
+### listen to the raw file on the host
+ gst-launch-1.0 filesrc location=file.raw ! audio/x-raw,format=S24_32LE,rate=48000,channels=2,layout=interleaved ! audioconvert ! audio/x-raw,format=F32LE  ! audioresample ! autoaudiosink
+gst-launch-1.0 filesrc location=file.raw ! audio/x-raw,format=S24_32LE,rate=48000,channels=2,layout=interleaved ! audioconvert ! audioresample ! autoaudiosink

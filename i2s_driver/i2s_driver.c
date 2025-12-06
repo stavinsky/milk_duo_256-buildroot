@@ -1,4 +1,6 @@
 // #include "i2s_driver.h"
+#include "i2s_driver.h"
+
 #include <linux/bitfield.h>
 #include <linux/bits.h>
 #include <linux/clk.h>
@@ -15,8 +17,6 @@
 #include <sound/dmaengine_pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
-
-#include "aiao.h"
 /// aiao fiels
 #define I2S_TDM_SCLK_IN_SEL 0x000  // looks like not needed in master mode.
 #define I2S_TDM_FS_IN_SEL 0x004    // looks like not needed in master mode.
@@ -147,6 +147,7 @@ struct sg2002_i2s {
     struct clk* clk_mclk;
     struct device* dev;
     struct snd_dmaengine_dai_dma_data playback_dma;
+    struct snd_dmaengine_dai_dma_data capture_dma;
     phys_addr_t phys_base;
     struct regmap_field* fields[F_MAX_FIELDS];
     struct regmap_field* aiao_fields[F_MAX_FIELDS];
@@ -174,6 +175,21 @@ static int sg2002_aiao_regmap(struct sg2002_i2s* i2s) {
     }
     return 0;
 }
+static int sg2002_setup_dma_struct(struct sg2002_i2s* i2s, struct resource* res) {
+    i2s->phys_base = res->start;
+
+    i2s->playback_dma.addr = i2s->phys_base + I2S_TX_WR_PORT;
+    i2s->playback_dma.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+    i2s->playback_dma.fifo_size = 1024;
+    i2s->playback_dma.maxburst = 8;
+
+    i2s->capture_dma.addr = i2s->phys_base + I2S_RX_RD_PORT;
+    i2s->capture_dma.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+    i2s->capture_dma.fifo_size = 1024;
+    i2s->capture_dma.maxburst = 8;
+    return 0;
+}
+
 static const struct snd_dmaengine_pcm_config sg_i2s_pcm_config = {
     .prepare_slave_config = snd_dmaengine_pcm_prepare_slave_config,
 };
@@ -190,6 +206,7 @@ static int sg_i2s_hw_params(struct snd_pcm_substream* substream,
     if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
         regmap_field_write(i2s->fields[F_TX_MODE], 1);
     } else {
+        regmap_field_write(i2s->fields[F_TX_MODE], 0);
     }
     return 0;
 }
@@ -264,7 +281,7 @@ static int sg_i2s_dai_probe(struct snd_soc_dai* dai) {
         return -ENODEV;
     }
 
-    snd_soc_dai_init_dma_data(dai, &i2s->playback_dma, NULL);
+    snd_soc_dai_init_dma_data(dai, &i2s->playback_dma, &i2s->capture_dma);
     snd_soc_dai_set_drvdata(dai, i2s);
     return 0;
 }
@@ -280,12 +297,19 @@ static struct snd_soc_dai_driver sg_i2s_dai = {
     .name = "sg2002-i2s",
     .playback = {
         .stream_name = "Playback",
-        .channels_min = 1,
+        .channels_min = 2,
         .channels_max = 2,
-        .rates = SNDRV_PCM_RATE_8000_192000,
-        .formats = SNDRV_PCM_FMTBIT_S16_LE |
-                   SNDRV_PCM_FMTBIT_S24_LE,
+        .rates = SNDRV_PCM_RATE_48000,
+        .formats = SNDRV_PCM_FMTBIT_S24_LE,
     },
+    .capture = {
+        .stream_name = "Capture",
+        .channels_min = 2,
+        .channels_max = 2,
+        .rates = SNDRV_PCM_RATE_48000,
+        .formats = SNDRV_PCM_FMTBIT_S24_LE,
+    },
+
     .ops = &sg_i2s_dai_ops,
     // .capture = { ... } if you need it
 };
@@ -442,11 +466,7 @@ static int sg2002_i2s_probe(struct platform_device* pdev) {
     if (ret)
         return ret;
 
-    i2s->phys_base = res->start;
-    i2s->playback_dma.addr = i2s->phys_base + I2S_TX_WR_PORT;
-    i2s->playback_dma.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
-    i2s->playback_dma.fifo_size = 1024;
-    i2s->playback_dma.maxburst = 8;
+    sg2002_setup_dma_struct(i2s, res);
 
     ret = of_property_read_u32(np, "aiao,tdm-id", &i2s->tdm_id);
     if (ret) {
