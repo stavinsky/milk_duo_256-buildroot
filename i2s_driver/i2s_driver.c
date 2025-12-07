@@ -48,6 +48,12 @@
 #define I2S_RX_RD_PORT 0x080
 #define I2S_TX_WR_PORT 0x0C0
 
+enum sg_i2s_capability {
+    SG_I2S_CAP_RX,
+    SG_I2S_CAP_TX,
+    SG_I2S_CAP_TXRX,
+};
+
 enum aiao_fields {
     F_I2S_TDM_0_SDI_IN_SEL,
     F_I2S_TDM_1_SDI_IN_SEL,
@@ -151,6 +157,7 @@ struct sg2002_i2s {
     phys_addr_t phys_base;
     struct regmap_field* fields[F_MAX_FIELDS];
     struct regmap_field* aiao_fields[F_MAX_FIELDS];
+    enum sg_i2s_capability cap;
 };
 
 static int sg2002_regmap_init(struct sg2002_i2s* i2s) {
@@ -293,7 +300,7 @@ static const struct snd_soc_dai_ops sg_i2s_dai_ops = {
     .trigger = sg_i2s_trigger,
 };
 
-static struct snd_soc_dai_driver sg_i2s_dai = {
+static struct snd_soc_dai_driver sg_i2s_dai_template = {
     .name = "sg2002-i2s",
     .playback = {
         .stream_name = "Playback",
@@ -311,7 +318,6 @@ static struct snd_soc_dai_driver sg_i2s_dai = {
     },
 
     .ops = &sg_i2s_dai_ops,
-    // .capture = { ... } if you need it
 };
 static const struct snd_soc_component_driver sg_i2s_component = {
     .name = "sg2002-i2s",
@@ -411,8 +417,6 @@ static void sg2002_i2s_hw_disable(struct sg2002_i2s* i2s) {
 }
 
 static void setup_aiao(struct sg2002_i2s* i2s) {
-    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_2_SDI_IN_SEL], 0b110);
-    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_2_SDO_OUT_SEL], 0b110);
     regmap_field_write(i2s->aiao_fields[F_AUDIO_PDM_SEL_I2S1], 0);
 };
 static void setup_tdm(struct sg2002_i2s* i2s) {
@@ -434,12 +438,82 @@ static void setup_tdm(struct sg2002_i2s* i2s) {
 
     regmap_field_write(i2s->fields[F_I2S_ENABLE], 0);  ////
 };
+static void sg2002_i2s_mux_setup(struct sg2002_i2s* i2s) {
+    u32 sdi_in;
+    u32 sdo_out;
+    if (i2s->tdm_id > 3) {
+        dev_warn(i2s->dev, "tdm-id %u out of range, skipping mux setup\n", i2s->tdm_id);
+        return;
+    }
+    if (!of_property_read_u32(i2s->dev->of_node, "sg,sdi-in", &sdi_in)) {
+        if (sdi_in < 7 && sdi_in != 0) {
+            switch (i2s->tdm_id) {
+                case 0:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_0_SDI_IN_SEL], sdi_in);
+                    break;
+                case 1:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_1_SDI_IN_SEL], sdi_in);
+                    break;
+                case 2:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_2_SDI_IN_SEL], sdi_in);
+                    break;
+                case 3:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_3_SDI_IN_SEL], sdi_in);
+                    break;
+            }
+
+        } else {
+            dev_warn(i2s->dev, "sg,sdi-in %u out of range, skipping mux setup\n", sdi_in);
+        }
+    }
+    if (!of_property_read_u32(i2s->dev->of_node, "sg,sdo-out", &sdo_out)) {
+        if (sdo_out < 7 && sdo_out != 0) {
+            switch (i2s->tdm_id) {
+                case 0:
+                    dev_warn(i2s->dev, "tdm0: sg,sdo-out must be 4, got %u\n", sdo_out);
+                    break;
+                case 1:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_1_SDO_OUT_SEL], sdo_out);
+                    break;
+                case 2:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_2_SDO_OUT_SEL], sdo_out);
+                    break;
+                case 3:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_3_SDO_OUT_SEL], sdo_out);
+                    break;
+            }
+        } else {
+            dev_warn(i2s->dev, "sg,sdo-out %u out of range, skipping mux setup\n", sdo_out);
+        }
+    }
+}
+static void sg2002_i2s_set_cap(struct sg2002_i2s* i2s) {
+    const char* cap;
+    if (!of_property_read_string(i2s->dev->of_node, "capability", &cap)) {
+        if (!strcmp(cap, "rx"))
+            i2s->cap = SG_I2S_CAP_RX;
+
+        else if (!strcmp(cap, "tx"))
+            i2s->cap = SG_I2S_CAP_TX;
+
+        else if (!strcmp(cap, "txrx"))
+            i2s->cap = SG_I2S_CAP_TXRX;
+
+        else
+            dev_warn(i2s->dev, "unknown capability '%s', using txrx\n", cap);
+    } else {
+        dev_info(i2s->dev, "capability missing, default = txrx\n");
+        i2s->cap = SG_I2S_CAP_TXRX;
+    }
+    return;
+}
 static int sg2002_i2s_probe(struct platform_device* pdev) {
     struct device* dev = &pdev->dev;
     struct sg2002_i2s* i2s;
     struct device_node* np = dev->of_node;
     struct resource* res;
     void __iomem* regs;
+    struct snd_soc_dai_driver* dai;
     int ret;
 
     i2s = devm_kzalloc(dev, sizeof(*i2s), GFP_KERNEL);
@@ -458,6 +532,8 @@ static int sg2002_i2s_probe(struct platform_device* pdev) {
     if (IS_ERR(i2s->aiao)) {
         return dev_err_probe(dev, PTR_ERR(i2s->aiao), "regmap aiao init\n");
     }
+
+    sg2002_i2s_set_cap(i2s);
 
     ret = sg2002_regmap_init(i2s);
     if (ret)
@@ -494,12 +570,22 @@ static int sg2002_i2s_probe(struct platform_device* pdev) {
         return ret;
 
     setup_aiao(i2s);
+    sg2002_i2s_mux_setup(i2s);
     setup_tdm(i2s);
 
     platform_set_drvdata(pdev, i2s);
 
+    dai = devm_kmemdup(dev, &sg_i2s_dai_template, sizeof(*dai), GFP_KERNEL);
+    if (!dai)
+        return -ENOMEM;
+    if (i2s->cap == SG_I2S_CAP_RX) {
+        memset(&dai->playback, 0, sizeof(dai->playback));
+    } else if (i2s->cap == SG_I2S_CAP_TX) {
+        memset(&dai->capture, 0, sizeof(dai->capture));
+    }
+
     ret = devm_snd_soc_register_component(dev, &sg_i2s_component,
-                                          &sg_i2s_dai, 1);
+                                          dai, 1);
     if (ret)
         return ret;
 
