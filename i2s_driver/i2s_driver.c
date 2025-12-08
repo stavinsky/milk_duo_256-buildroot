@@ -17,10 +17,12 @@
 #include <sound/dmaengine_pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
+
+#include "ephy.h"
 /// aiao fiels
-#define I2S_TDM_SCLK_IN_SEL 0x000  // looks like not needed in master mode.
-#define I2S_TDM_FS_IN_SEL 0x004    // looks like not needed in master mode.
-#define I2S_TDM_SDI_IN_SEL 0x008   //
+#define I2S_TDM_SCLK_IN_SEL 0x000
+#define I2S_TDM_FS_IN_SEL 0x004
+#define I2S_TDM_SDI_IN_SEL 0x008
 #define I2S_TDM_SDO_OUT_SEL 0x00c
 #define I2S_BCLK_OEN_SEL 0x030
 #define AUDIO_PDM_CTRL 0x040
@@ -55,6 +57,16 @@ enum sg_i2s_capability {
 };
 
 enum aiao_fields {
+
+    F_I2S_TDM_0_SCLK_IN_SEL,
+    F_I2S_TDM_1_SCLK_IN_SEL,
+    F_I2S_TDM_2_SCLK_IN_SEL,
+    F_I2S_TDM_3_SCLK_IN_SEL,
+
+    F_I2S_TDM_0_FS_IN_SEL,
+    F_I2S_TDM_1_FS_IN_SEL,
+    F_I2S_TDM_2_FS_IN_SEL,
+    F_I2S_TDM_3_FS_IN_SEL,
     F_I2S_TDM_0_SDI_IN_SEL,
     F_I2S_TDM_1_SDI_IN_SEL,
     F_I2S_TDM_2_SDI_IN_SEL,
@@ -67,6 +79,16 @@ enum aiao_fields {
     F_AIAO_MAX_FIELDS,
 };
 static const struct reg_field aiao_fields[] = {
+    [F_I2S_TDM_0_SCLK_IN_SEL] = REG_FIELD(I2S_TDM_SCLK_IN_SEL, 0, 2),
+    [F_I2S_TDM_1_SCLK_IN_SEL] = REG_FIELD(I2S_TDM_SCLK_IN_SEL, 4, 6),
+    [F_I2S_TDM_2_SCLK_IN_SEL] = REG_FIELD(I2S_TDM_SCLK_IN_SEL, 8, 10),
+    [F_I2S_TDM_3_SCLK_IN_SEL] = REG_FIELD(I2S_TDM_SCLK_IN_SEL, 12, 14),
+
+    [F_I2S_TDM_0_FS_IN_SEL] = REG_FIELD(I2S_TDM_FS_IN_SEL, 0, 2),
+    [F_I2S_TDM_1_FS_IN_SEL] = REG_FIELD(I2S_TDM_FS_IN_SEL, 4, 6),
+    [F_I2S_TDM_2_FS_IN_SEL] = REG_FIELD(I2S_TDM_FS_IN_SEL, 8, 10),
+    [F_I2S_TDM_3_FS_IN_SEL] = REG_FIELD(I2S_TDM_FS_IN_SEL, 12, 14),
+
     [F_I2S_TDM_0_SDI_IN_SEL] = REG_FIELD(I2S_TDM_SDI_IN_SEL, 0, 2),
     [F_I2S_TDM_1_SDI_IN_SEL] = REG_FIELD(I2S_TDM_SDI_IN_SEL, 4, 6),
     [F_I2S_TDM_2_SDI_IN_SEL] = REG_FIELD(I2S_TDM_SDI_IN_SEL, 8, 10),
@@ -109,6 +131,10 @@ enum tdm_fields {
     F_SLOT_SIZE,
     F_DATA_SIZE,
     F_FB_OFFSET,
+    F_SLOT_EN,
+    F_I2S_LRCK_MASTER_ENABLE,
+    F_TX_SOURCE_LEFT_ALIGN,
+    F_AUTO_DISABLE_WITH_CH_EN,
     /* End of register map */
     F_MAX_FIELDS,
 };
@@ -135,7 +161,10 @@ static const struct reg_field sg2002_tdm_fields[] = {
     [F_FRAME_LENGTH] = REG_FIELD(I2S_FRAME_SETTING, 0, 8),
     [F_FS_ACTIVE_LENGTH] = REG_FIELD(I2S_FRAME_SETTING, 16, 23),
     [F_I2S_INT_EN] = REG_FIELD(I2S_I2S_INT_EN, 8, 8),
-    // todo slot_en
+    [F_SLOT_EN] = REG_FIELD(I2S_SLOT_SETTING2, 0, 15),
+    [F_I2S_LRCK_MASTER_ENABLE] = REG_FIELD(I2S_LRCK_MASTER, 0, 0),
+    [F_TX_SOURCE_LEFT_ALIGN] = REG_FIELD(I2S_DATA_FORMAT, 6, 6),
+    [F_AUTO_DISABLE_WITH_CH_EN] = REG_FIELD(I2S_BLK_CFG, 4, 4),
     [F_WORD_LENGTH] = REG_FIELD(I2S_DATA_FORMAT, 1, 2),
     [F_RX_FIFO_THRESHOLD] = REG_FIELD(I2S_FIFO_THRESHOLD, 0, 4),
     [F_TX_FIFO_THRESHOLD] = REG_FIELD(I2S_FIFO_THRESHOLD, 16, 20),
@@ -156,8 +185,9 @@ struct sg2002_i2s {
     struct snd_dmaengine_dai_dma_data capture_dma;
     phys_addr_t phys_base;
     struct regmap_field* fields[F_MAX_FIELDS];
-    struct regmap_field* aiao_fields[F_MAX_FIELDS];
+    struct regmap_field* aiao_fields[F_AIAO_MAX_FIELDS];
     enum sg_i2s_capability cap;
+    bool only_clock_mode;
 };
 
 static int sg2002_regmap_init(struct sg2002_i2s* i2s) {
@@ -217,21 +247,19 @@ static int sg_i2s_hw_params(struct snd_pcm_substream* substream,
     }
     return 0;
 }
-static int sg_reset_fifo(struct sg2002_i2s* i2s) {
+static void sg_reset_fifo(struct sg2002_i2s* i2s) {
     regmap_field_write(i2s->fields[F_RX_FIFO_RESET], 1);
     regmap_field_write(i2s->fields[F_TX_FIFO_RESET], 1);
     udelay(10);
     regmap_field_write(i2s->fields[F_RX_FIFO_RESET], 0);
     regmap_field_write(i2s->fields[F_TX_FIFO_RESET], 0);
-    return 0;
 };
-static int sg_reset_i2s(struct sg2002_i2s* i2s) {
+static void sg_reset_i2s(struct sg2002_i2s* i2s) {
     regmap_field_write(i2s->fields[F_I2S_RESET_RX], 1);
     regmap_field_write(i2s->fields[F_I2S_RESET_TX], 1);
     udelay(10);
     regmap_field_write(i2s->fields[F_I2S_RESET_RX], 0);
     regmap_field_write(i2s->fields[F_I2S_RESET_TX], 0);
-    return 0;
 };
 static int sg_i2s_trigger(struct snd_pcm_substream* substream,
                           int cmd, struct snd_soc_dai* dai) {
@@ -241,8 +269,6 @@ static int sg_i2s_trigger(struct snd_pcm_substream* substream,
         case SNDRV_PCM_TRIGGER_START:
         case SNDRV_PCM_TRIGGER_RESUME:
         case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-            dev_info(i2s->dev, "tx start\n");
-            regmap_field_write(i2s->fields[F_AUD_EN], 1);
             sg_reset_fifo(i2s);
             sg_reset_i2s(i2s);
             regmap_field_write(i2s->fields[F_I2S_ENABLE], 1);
@@ -251,7 +277,6 @@ static int sg_i2s_trigger(struct snd_pcm_substream* substream,
         case SNDRV_PCM_TRIGGER_STOP:
         case SNDRV_PCM_TRIGGER_SUSPEND:
         case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-            dev_info(i2s->dev, "tx stop\n");
             regmap_field_write(i2s->fields[F_I2S_ENABLE], 0);
             sg_reset_fifo(i2s);
             sg_reset_i2s(i2s);
@@ -324,84 +349,6 @@ static const struct snd_soc_component_driver sg_i2s_component = {
     .probe = sg_i2s_component_probe,
 };
 
-/// mambo jumbo voodoo
-
-static void sg2002_ephy_init(void __iomem* base) {
-    u32 temp;
-
-    /* 0x03009804[0] = 1'b1 (rg_ephy_apb_rw_sel=1, use apb interface) */
-    temp = readl(base + ETH_804);
-    pr_info("READ 804: 0x%08X\n", temp);
-    temp |= BIT(0);
-    writel(temp, base + ETH_804);
-    pr_info("WRITE 804: 0x%08X\n", temp);
-
-    /* 0x03009808[4:0] = 5'b00001 (rg_ephy_pll_stable_cnt = 1) */
-    temp = readl(base + ETH_808);
-    pr_info("READ 808: 0x%08X\n", temp);
-    temp &= ~GENMASK(4, 0);
-    temp |= 0x01;
-    writel(temp, base + ETH_808);
-    pr_info("WRITE 808: 0x%08X\n", temp);
-
-    /* 0x03009800 = 0x0905 (reset release etc.) */
-    temp = readl(base + ETH_800);
-    pr_info("READ 800: 0x%08X\n", temp);
-    temp = 0x0905;
-    writel(temp, base + ETH_800);
-    pr_info("WRITE 800: 0x%08X\n", temp);
-
-    /* 10 us delay */
-    udelay(10);
-
-    /* 0x0300907C[12:8] = 5'b00101 (page_sel_mode0 = page 5) */
-    temp = readl(base + ETH_07C);
-    pr_info("READ 07C: 0x%08X\n", temp);
-    temp &= ~GENMASK(12, 8);
-    temp |= (0x05 << 8);
-    writel(temp, base + ETH_07C);
-    pr_info("WRITE 07C: 0x%08X\n", temp);
-
-    /* 0x03009078[11:0] = 0xF00 (set to gpio from top) */
-    temp = readl(base + ETH_078);
-    pr_info("READ 078: 0x%08X\n", temp);
-    temp &= ~GENMASK(11, 0);
-    temp |= 0xF00;
-    writel(temp, base + ETH_078);
-    pr_info("WRITE 078: 0x%08X\n", temp);
-
-    /* 0x03009074 |= 0x606 */
-    temp = readl(base + ETH_074);
-    pr_info("READ 074: 0x%08X\n", temp);
-    temp |= 0x606;
-    writel(temp, base + ETH_074);
-    pr_info("WRITE 074: 0x%08X\n", temp);
-
-    /* 0x03009070 |= 0x606 */
-    temp = readl(base + ETH_070);
-    pr_info("READ 070: 0x%08X\n", temp);
-    temp |= 0x606;
-    writel(temp, base + ETH_070);
-    pr_info("WRITE 070: 0x%08X\n", temp);
-}
-static int sg2002_ephy_mod_init(void) {
-    void __iomem* base;
-
-    base = ioremap(SG2002_ETH_BASE, SG2002_ETH_SIZE);
-    if (!base) {
-        pr_err("ephy: ioremap failed\n");
-        return -ENOMEM;
-    }
-
-    sg2002_ephy_init(base);
-
-    iounmap(base);
-    return 0;
-}
-
-static void sg2002_ephy_mod_exit(void) {}
-/// mambo jumbo voodoo
-
 static void sg2002_i2s_hw_disable(struct sg2002_i2s* i2s) {
     if (!i2s->regs)  // todo check if it is correct
         return;
@@ -420,14 +367,15 @@ static void setup_aiao(struct sg2002_i2s* i2s) {
     regmap_field_write(i2s->aiao_fields[F_AUDIO_PDM_SEL_I2S1], 0);
 };
 static void setup_tdm(struct sg2002_i2s* i2s) {
-    regmap_field_write(i2s->fields[F_MASTER_MODE], 1);
+    bool is_master_mode = of_property_read_bool(i2s->dev->of_node, "sg,tdm-master");
+    regmap_field_write(i2s->fields[F_MASTER_MODE], is_master_mode);
     regmap_field_write(i2s->fields[F_DMA_MODE], 1);
     regmap_field_write(i2s->fields[F_MCLK_DIV], 1);
     regmap_field_write(i2s->fields[F_BCLK_DIV], 16);
 
     regmap_field_write(i2s->fields[F_AUD_CLK_SEL], 0);
-    regmap_field_write(i2s->fields[F_MCLK_OUT_EN], 1);
-    regmap_field_write(i2s->fields[F_AUD_EN], 0);  ///
+    regmap_field_write(i2s->fields[F_MCLK_OUT_EN], 0);
+    regmap_field_write(i2s->fields[F_AUD_EN], 1);  ///
 
     regmap_field_write(i2s->fields[F_RX_FIFO_THRESHOLD], 4);
     regmap_field_write(i2s->fields[F_TX_FIFO_THRESHOLD], 4);
@@ -437,16 +385,77 @@ static void setup_tdm(struct sg2002_i2s* i2s) {
     regmap_field_write(i2s->fields[F_FS_ACTIVE_LENGTH], 31);
 
     regmap_field_write(i2s->fields[F_I2S_ENABLE], 0);  ////
+    if (i2s->only_clock_mode) {
+        regmap_field_write(i2s->fields[F_I2S_LRCK_MASTER_ENABLE], 1);
+    }
+    // if (i2s->tdm_id == 2) {
+    //     sg_reset_fifo(i2s);
+    //     sg_reset_i2s(i2s);
+
+    //     // regmap_field_write(i2s->fields[F_TX_SOURCE_LEFT_ALIGN], 0);
+    //     //
+    //     regmap_field_write(i2s->fields[F_BCLK_OUT_CLK_FORCE_EN], 1);
+    //     // regmap_field_write(i2s->fields[F_AUTO_DISABLE_WITH_CH_EN], 1);
+    //     // regmap_field_write(i2s->fields[F_TX_FIFO_DMA_CLK_FORCE_EN], 1);
+    //     // regmap_field_write(i2s->fields[F_TX_BLK_CLK_FORCE_EN], 1);
+    //     regmap_field_write(i2s->fields[F_I2S_ENABLE], 1);  ////
+    // }
 };
 static void sg2002_i2s_mux_setup(struct sg2002_i2s* i2s) {
     u32 sdi_in;
     u32 sdo_out;
+    u32 fs_in;
+    u32 sclk_in;
+
     if (i2s->tdm_id > 3) {
         dev_warn(i2s->dev, "tdm-id %u out of range, skipping mux setup\n", i2s->tdm_id);
         return;
     }
+
+    if (!of_property_read_u32(i2s->dev->of_node, "sg,fs-in", &fs_in)) {
+        if (fs_in < 7) {
+            switch (i2s->tdm_id) {
+                case 0:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_0_FS_IN_SEL], fs_in);
+                    break;
+                case 1:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_1_FS_IN_SEL], fs_in);
+                    break;
+                case 2:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_2_FS_IN_SEL], fs_in);
+                    break;
+                case 3:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_3_FS_IN_SEL], fs_in);
+                    break;
+            }
+
+        } else {
+            dev_warn(i2s->dev, "sg,fs-in %u out of range, skipping mux setup\n", fs_in);
+        }
+    }
+    if (!of_property_read_u32(i2s->dev->of_node, "sg,sclk-in", &sclk_in)) {
+        if (sclk_in < 7) {
+            switch (i2s->tdm_id) {
+                case 0:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_0_SCLK_IN_SEL], sclk_in);
+                    break;
+                case 1:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_1_SCLK_IN_SEL], sclk_in);
+                    break;
+                case 2:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_2_SCLK_IN_SEL], sclk_in);
+                    break;
+                case 3:
+                    regmap_field_write(i2s->aiao_fields[F_I2S_TDM_3_SCLK_IN_SEL], sclk_in);
+                    break;
+            }
+
+        } else {
+            dev_warn(i2s->dev, "sg,sclk-in %u out of range, skipping mux setup\n", sclk_in);
+        }
+    }
     if (!of_property_read_u32(i2s->dev->of_node, "sg,sdi-in", &sdi_in)) {
-        if (sdi_in < 7 && sdi_in != 0) {
+        if (sdi_in < 7) {
             switch (i2s->tdm_id) {
                 case 0:
                     regmap_field_write(i2s->aiao_fields[F_I2S_TDM_0_SDI_IN_SEL], sdi_in);
@@ -467,7 +476,7 @@ static void sg2002_i2s_mux_setup(struct sg2002_i2s* i2s) {
         }
     }
     if (!of_property_read_u32(i2s->dev->of_node, "sg,sdo-out", &sdo_out)) {
-        if (sdo_out < 7 && sdo_out != 0) {
+        if (sdo_out < 7) {
             switch (i2s->tdm_id) {
                 case 0:
                     dev_warn(i2s->dev, "tdm0: sg,sdo-out must be 4, got %u\n", sdo_out);
@@ -569,11 +578,17 @@ static int sg2002_i2s_probe(struct platform_device* pdev) {
     if (ret)
         return ret;
 
-    setup_aiao(i2s);
-    sg2002_i2s_mux_setup(i2s);
-    setup_tdm(i2s);
+    i2s->only_clock_mode = of_property_read_bool(i2s->dev->of_node, "sg,only-clock");
 
     platform_set_drvdata(pdev, i2s);
+    setup_tdm(i2s);
+    if (i2s->only_clock_mode) {
+        dev_info(dev, "tdm-id %d is set to only clock generation mode\n", i2s->tdm_id);
+        return 0;
+    }
+
+    setup_aiao(i2s);
+    sg2002_i2s_mux_setup(i2s);
 
     dai = devm_kmemdup(dev, &sg_i2s_dai_template, sizeof(*dai), GFP_KERNEL);
     if (!dai)
@@ -595,7 +610,8 @@ static int sg2002_i2s_probe(struct platform_device* pdev) {
         return ret;
     }
 
-    sg2002_ephy_mod_init();
+    // sg2002_ephy_mod_init();
+    sg2002_ephy_init2(i2s->dev);
 
     dev_info(dev, "SG2002 I2S probed: tdm-id=%u, \n", i2s->tdm_id);
     return 0;

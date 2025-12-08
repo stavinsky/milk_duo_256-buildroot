@@ -234,18 +234,34 @@ in the base file
 	pinctrl-0 = <&i2s2_cfg>;
 	pinctrl-names = "default";
 	#sound-dai-cells = <0>;
-	capability = "rx";
-	sg,sdi-in = <6>;
+	capability = "tx";
+	sg,sdo-out = <6>;
+	sg,fs-in = <2>;
+	sg,sclk-in = <2>;
+	
 	status = "okay";
+	
 };
 &i2s2 {
 	pinctrl-0 = <&i2s2_cfg>;
 	pinctrl-names = "default";
-	#sound-dai-cells = <0>;
-	capability = "tx";
-	sg,sdo-out = <6>;
+	sg,only-clock;
+	sg,tdm-master;// set master to enable clocks lrck/bclk output
+	
 	status = "okay";
 };
+&i2s3 {
+	pinctrl-0 = <&i2s2_cfg>;
+	pinctrl-names = "default";
+	#sound-dai-cells = <0>;
+	capability = "rx";
+	sg,sdi-in = <6>;
+	sg,fs-in = <2>;
+	sg,sclk-in = <2>;
+	
+	status = "okay";
+};
+
 
 
 / {
@@ -266,7 +282,7 @@ in the base file
 		
 		
 		sound_rx_cpu: simple-audio-card,cpu {
-			sound-dai = <&i2s1>;
+			sound-dai = <&i2s3>;
 		};
 		
 		simple-audio-card,codec {
@@ -282,7 +298,7 @@ in the base file
 		
 		
 		sound_tx_cpu: simple-audio-card,cpu {
-			sound-dai = <&i2s2>;
+			sound-dai = <&i2s1>;
 		};
 		
 		simple-audio-card,codec {

@@ -1,7 +1,5 @@
-modprobe snd-soc-simple-card
-insmod /home/milkv/codec.ko
-insmod /home/milkv/i2s_driver.ko
-# aplay -D hw:0,0 -f S24_LE -c 2 -r 48000 /dev/random
+modprobe snd-soc-simple-card && insmod /home/milkv/codec.ko && insmod /home/milkv/i2s_driver.ko
+# aplay -D hw:1,0 -f S24_LE -c 2 -r 48000 /dev/random
 # arecord -D hw:0,0 -f S24_LE -c 2 -r 48000 > /dev/null 
 # 0x04330000 - dma 
 # 0x03000000 - system control 
@@ -10,3 +8,5 @@ insmod /home/milkv/i2s_driver.ko
 # clk 0x03002000 clk_4 0x010
 # devmem 0x04330120 64
 # int_mux = <0x7FC00>; /* enable bit [10..18] for CPU1(906B) */
+# devmem 0x412002c 1 # i2s_lrck_master_enable  
+rmmod snd_soc_simple_card && rmmod codec &&   rmmod i2s_driver
