@@ -582,13 +582,12 @@ static int sg2002_i2s_probe(struct platform_device* pdev) {
 
     platform_set_drvdata(pdev, i2s);
     setup_tdm(i2s);
+    setup_aiao(i2s);
+    sg2002_i2s_mux_setup(i2s);
     if (i2s->only_clock_mode) {
         dev_info(dev, "tdm-id %d is set to only clock generation mode\n", i2s->tdm_id);
         return 0;
     }
-
-    setup_aiao(i2s);
-    sg2002_i2s_mux_setup(i2s);
 
     dai = devm_kmemdup(dev, &sg_i2s_dai_template, sizeof(*dai), GFP_KERNEL);
     if (!dai)

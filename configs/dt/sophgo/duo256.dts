@@ -247,7 +247,7 @@ in the base file
 	pinctrl-names = "default";
 	sg,only-clock;
 	sg,tdm-master;// set master to enable clocks lrck/bclk output
-	
+	sg,sdo-out = <5>;
 	status = "okay";
 };
 &i2s3 {
