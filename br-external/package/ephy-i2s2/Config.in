@@ -1,0 +1,5 @@
+config BR2_PACKAGE_EPHY_I2S2
+    bool "ephy-i2s2"
+    depends on BR2_LINUX_KERNEL
+    help
+      Disable ephy pin output. 
