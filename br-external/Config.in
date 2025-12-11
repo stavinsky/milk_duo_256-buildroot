@@ -1,2 +1,2 @@
 source "$BR2_EXTERNAL_br_ext_PATH/package/duo-pinmux/Config.in"
-
+source "$BR2_EXTERNAL_br_ext_PATH/package/ephy-i2s2/Config.in"
